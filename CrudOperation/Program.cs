@@ -1,5 +1,5 @@
-using CrudOperation.Data;
-using Microsoft.EntityFrameworkCore;
+
+using CrudOperation.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,10 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddDbContext<CrudDbContext>(options =>
-    {
-        options.UseSqlServer(builder.Configuration.GetConnectionString("CrudOperation"));
-    });
+builder.Services.AddSingleton<UserService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

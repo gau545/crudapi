@@ -1,9 +1,11 @@
-﻿using CrudOperation.Data;
-using CrudOperation.Models.Domain;
-using CrudOperation.Models.DTO;
+﻿using CrudOperation.Models.Domain;
+using CrudOperation.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace CrudOperation.Controllers
@@ -12,80 +14,61 @@ namespace CrudOperation.Controllers
     [ApiController]
     public class CrudOperationController : ControllerBase
     {
-        private readonly CrudDbContext _context;
+        private readonly UserService _userService;
 
-        public CrudOperationController(CrudDbContext db)
+        public CrudOperationController(UserService userService)
         {
-            _context = db;
+            _userService = userService;
         }
 
-        [HttpPost("Create")]
-        public async Task<IActionResult> CreateUser(CreateUserDTO req)
+        [HttpGet]
+        public ActionResult<IEnumerable<User>> Get()
         {
-            var user = new User
-            {
-                Username = req.Username,
-                Text = req.Text,
-                CreatedDate = req.CreatedDate
-            };
-
-            await _context.Users.AddAsync(user);
-            await _context.SaveChangesAsync();
-
-            return Ok(user);
+            return Ok(_userService.GetAllUsers());
         }
 
-        [HttpGet("GetById/{id}")]
-        public async Task<IActionResult> GetUser(Guid id)
+        [HttpGet("{id}")]
+        public ActionResult<User> Get(int id)
         {
-            var user = await _context.Users.FindAsync(id);
+            var user = _userService.GetUserById(id);
             if (user == null)
             {
                 return NotFound();
             }
-
             return Ok(user);
         }
 
-        [HttpGet("GetAllData")]
-        public async Task<IActionResult> GetAllUsers()
+        [HttpPost]
+        public ActionResult Post([FromBody] User user)
         {
-            var users = await _context.Users.ToListAsync();
-            return Ok(users);
+            _userService.AddUser(user);
+            return CreatedAtAction(nameof(Get), new { id = user.Id }, user);
         }
 
-        [HttpPut("UpdateById/{id}")]
-        public async Task<IActionResult> UpdateUser(Guid id, UpdateUserDTO req)
+        [HttpPut("{id}")]
+        public ActionResult Put(int id, [FromBody] User user)
         {
-            var user = await _context.Users.FindAsync(id);
-            if (user == null)
+            var existingUser = _userService.GetUserById(id);
+            if (existingUser == null)
             {
                 return NotFound();
             }
 
-            user.Username = req.Username;
-            user.Text = req.Text;
-
-            _context.Users.Update(user);
-            await _context.SaveChangesAsync();
-
-            return Ok(user);
-        }
-
-        [HttpDelete("DeleteById/{id}")]
-        public async Task<IActionResult> DeleteUser(Guid id)
-        {
-            var user = await _context.Users.FindAsync(id);
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
-
+            _userService.UpdateUser(id, user.Username, user.Text);
             return NoContent();
         }
 
+
+        [HttpDelete("{id}")]
+        public ActionResult Delete(int id)
+        {
+            var existingUser = _userService.GetUserById(id);
+            if (existingUser == null)
+            {
+                return NotFound();
+            }
+            _userService.DeleteUser(id);
+            return NoContent();
+        }
     }
 }
